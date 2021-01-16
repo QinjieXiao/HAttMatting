@@ -84,6 +84,23 @@ def alpha_prediction_loss_with_trimap(y_pred, y_true, trimap):
     alpha_loss = torch.sqrt(diff ** 2 + 1e-12)
     return torch.sum(alpha_loss) / (weighted.sum() + 1.)
 
+def loss_function(stage, img, trimap_pre, trimap_gt, alpha_pre, alpha_gt):
+    criterion = nn.CrossEntropyLoss()
+    L_t = criterion(trimap_pre, trimap_gt[:,0,:,:].long())
+    if stage == 'train_trimap':
+        return L_t
+    elif stage == 'train_alpha':
+        eps = 1e-6
+        L_alpha = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
+        # L_composition
+        fg = torch.cat((alpha_gt, alpha_gt, alpha_gt), 1) * img
+        fg_pre = torch.cat((alpha_pre, alpha_pre, alpha_pre), 1) * img
+        L_composition = torch.sqrt(torch.pow(fg - fg_pre, 2.) + eps).mean()
+        L_p = 0.5*L_alpha + 0.5*L_composition
+
+        return L_p + 0.01*L_t
+
+    # return loss, L_alpha, L_composition, L_t
 
 class LossFunction(object):
     def __init__(self, stage):
@@ -104,15 +121,22 @@ class LossFunction(object):
         mask[trimap_true == 255] = 2
         return self.trimap_criterion(trimap_pred, mask)
 
-    def alpha_prediction_loss_with_trimap(self, y_pred, y_true, trimap):
-        weighted = torch.zeros(trimap.shape, device=device)
-        weighted[trimap == 128] = 1.
-        diff = y_pred - y_true
-        diff = diff * weighted
-        alpha_loss = torch.sqrt(diff ** 2 + 1e-12)
-        return torch.sum(alpha_loss) / (weighted.sum() + 1.)
+    def alpha_prediction_loss_with_trimap(self, img, y_pred, y_true):
+        eps = 1e-6
+        alpha_loss = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
+        # L_composition
+        fg = torch.cat((alpha_gt, alpha_gt, alpha_gt), 1) * img
+        fg_pre = torch.cat((alpha_pre, alpha_pre, alpha_pre), 1) * img
+        composition_loss = torch.sqrt(torch.pow(fg - fg_pre, 2.) + eps).mean()
+        return 0.5*alpha_loss + 0.5*composition_loss
+        # weighted = torch.zeros(trimap.shape, device=device)
+        # weighted[trimap == 128] = 1.
+        # diff = y_pred - y_true
+        # diff = diff * weighted
+        # alpha_loss = torch.sqrt(diff ** 2 + 1e-12)
+        # return torch.sum(alpha_loss) / (weighted.sum() + 1.)
 
-    def fusion_loss(self, y_pred, y_true, trimap_pred, trimap_true):
-        return self.alpha_prediction_loss_with_trimap(y_pred, y_true, trimap_true)
+    def fusion_loss(self, img, y_pred, y_true, trimap_pred, trimap_true):
+        return self.alpha_prediction_loss_with_trimap(img, y_pred, y_true)
         # + 0.025 * ssim_loss(y_pred, y_true)
         # + 0.01 * self.trimap_loss(trimap_pred, trimap_true)

@@ -134,6 +134,9 @@ class HADataset(Dataset):
             self.imgs = self.imgs[:split_index]
             self.alpha = self.alpha[:split_index]
             self.trimap = self.trimap[:split_index]
+            self.imgs = self.imgs.repeat(16)
+            self.alpha = self.alpha.repeat(16)
+            self.trimap = self.trimap.repeat(16)
         else:
             self.imgs = self.imgs[split_index:]
             self.alpha = self.alpha[split_index:]
@@ -151,7 +154,10 @@ class HADataset(Dataset):
         # size 800x600
 
         img, alpha, _, _ = process(img_path, alpha_path, bcount)
+        img = img[:, 12:-12]
+        alpha = alpha[:, 12:-12]
         trimap = gen_trimap(trimap_path)
+        trimap = trimap[:, 12:-12]
 
         # Flip array left to right randomly (prob=1:1)
         if np.random.random_sample() > 0.5:
@@ -159,7 +165,7 @@ class HADataset(Dataset):
             trimap = np.fliplr(trimap).copy()
             alpha = np.fliplr(alpha)
 
-        return self.transformer(img), alpha / 255.0, trimap, img_path
+        return img, self.transformer(img), alpha / 255.0, trimap, img_path
 
     def __len__(self):
         return len(self.imgs)

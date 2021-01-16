@@ -38,7 +38,7 @@ def training_step(self, batch, batch_idx):
 
 
 def validation_step(self, batch, batch_idx):
-    img, alpha_label, trimap_label, _ = batch
+    raw_img, img, alpha_label, trimap_label, _ = batch
     # img = img
     # alpha_label = alpha_label
 
@@ -48,7 +48,7 @@ def validation_step(self, batch, batch_idx):
     if self.stage == 'train_trimap':
         loss = self.criterion(trimap_out, trimap_label)
     elif self.stage == 'train_alpha':
-        loss = self.criterion(alpha_out, alpha_label, trimap_out, trimap_label)
+        loss = self.criterion(raw_img, alpha_out, alpha_label, trimap_out, trimap_label)
 
     self.log('val_loss', loss)
 
@@ -63,10 +63,10 @@ def build_loss(self):
 def configure_optimizers(self):
     optimizer = torch.optim.SGD(self.parameters(
     ), lr=self.lr, weight_decay=self.weight_decay, momentum=self.momentum, nesterov=True)
-    # scheduler = torch.optim.lr_scheduler.MultiplicativeLR(
-    #     optimizer, lr_lambda=lambda epoch: 0.95 ** epoch)
     scheduler = torch.optim.lr_scheduler.MultiplicativeLR(
-        optimizer, lr_lambda=lambda epoch: 0.95 if epoch % 20 == 0 and epoch > 0 else 1)
+        optimizer, lr_lambda=lambda epoch: 0.95)
+    # scheduler = torch.optim.lr_scheduler.MultiplicativeLR(
+    #     optimizer, lr_lambda=lambda epoch: 0.95 if epoch % 20 == 0 and epoch > 0 else 1)
     return {'optimizer': optimizer, 'lr_scheduler': scheduler}
 
 
