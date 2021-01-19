@@ -48,7 +48,7 @@ def return_raw_image(dataset):
 
 # bg_dataset = tfrecord_creator.read("bg", "./data/tfrecord/")
 # bg_dataset = tfrecord_creator.read("bg", "../data/bg/")
-bg_dataset = tfrecord_creator.read("bg", "/content/bg/")
+bg_dataset = tfrecord_creator.read("bg", "../bg/")
 bg_dataset = list(bg_dataset)
 print("___________________")
 print(len(bg_dataset))
@@ -91,10 +91,12 @@ def composite4(fg, bg, a, w, h):
 
 
 def process(img_path, alpha_path, bcount):
-    img_root_path = args.img_root_path
+    # img_root_path = args.img_root_path
+    img_root_path = '..\\'
     img_path = os.path.join(img_root_path, img_path)
     alpha_path = os.path.join(img_root_path, alpha_path)
     im = cv.imread(img_path, cv.IMREAD_UNCHANGED)
+    im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
     a = cv.imread(alpha_path, cv.IMREAD_UNCHANGED)
     # a = a[:, :, 3]
     h, w = im.shape[:2]
@@ -111,7 +113,8 @@ def process(img_path, alpha_path, bcount):
 
 
 def gen_trimap(trimap_path):
-    img_root_path = args.img_root_path
+    # img_root_path = args.img_root_path
+    img_root_path = '..\\'
     trimap_path = os.path.join(img_root_path, trimap_path)
     trimap = cv.imread(trimap_path, cv.IMREAD_UNCHANGED)
     return trimap
@@ -134,9 +137,9 @@ class HADataset(Dataset):
             self.imgs = self.imgs[:split_index]
             self.alpha = self.alpha[:split_index]
             self.trimap = self.trimap[:split_index]
-            self.imgs = self.imgs.repeat(16)
-            self.alpha = self.alpha.repeat(16)
-            self.trimap = self.trimap.repeat(16)
+            # self.imgs = self.imgs.repeat(16)
+            # self.alpha = self.alpha.repeat(16)
+            # self.trimap = self.trimap.repeat(16)
         else:
             self.imgs = self.imgs[split_index:]
             self.alpha = self.alpha[split_index:]
@@ -161,9 +164,9 @@ class HADataset(Dataset):
 
         # Flip array left to right randomly (prob=1:1)
         if np.random.random_sample() > 0.5:
-            img = np.fliplr(img)
+            img = np.fliplr(img).copy()
             trimap = np.fliplr(trimap).copy()
-            alpha = np.fliplr(alpha)
+            alpha = np.fliplr(alpha).copy()
 
         return img, self.transformer(img), alpha / 255.0, trimap, img_path
 
@@ -196,6 +199,6 @@ def gen_names():
 if __name__ == "__main__":
     dataset = HADataset(split='train')
     dataloader = torch.utils.data.dataloader.DataLoader(
-        dataset, batch_size=8, shuffle=True, num_workers=16)
+        dataset, batch_size=1, shuffle=True, num_workers=16)
     for i, (image, alpha, trimap) in enumerate(tqdm(dataloader)):
         print(image.size(), alpha.size(), trimap.size())
