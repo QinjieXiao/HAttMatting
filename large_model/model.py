@@ -13,6 +13,7 @@ from .alpha_model import AlphaModel
 
 class Model(pl.LightningModule):
     def __init__(self, stage, lr=0.001, weight_decay=0, momentum=0.9):
+        super(Model, self).__init__()
         self.stage = stage
         self.lr = lr
         self.weight_decay = weight_decay
@@ -24,9 +25,10 @@ class Model(pl.LightningModule):
     
     def forward(self, x):
         trimap = self.trimap(x)
-        x = torch.concat((x, trimap), 1)
-        _, pred_alpha = self.alpha(x)
-        return pred_alpha
+        trimap_argmax = trimap.argmax(dim=1, keepdim=True)
+        trimap_argmax = F.one_hot(trimap_argmax.permute(0, 2, 3, 1), num_classes=3).squeeze(3).permute(0, 3, 1, 2)
+        alpha, _ = self.alpha(x, trimap_argmax)
+        return trimap, alpha
     
     def migrate(self, state_dict):
         for name, p in state_dict.items():
