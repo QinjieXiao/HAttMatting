@@ -30,15 +30,15 @@ def training_step(self, batch, batch_idx):
     if self.stage == 'train_trimap':
         loss = self.criterion(trimap_out, trimap_label)
     elif self.stage == 'train_alpha':
-        loss = self.criterion(alpha_out, alpha_label, trimap_out, trimap_label)
+        loss = self.criterion(img, alpha_out, alpha_label, trimap_out, trimap_label)
 
-    self.log('train_loss', loss * 8)
+    self.log('train_loss', loss)
 
     return loss
 
 
 def validation_step(self, batch, batch_idx):
-    raw_img, img, alpha_label, trimap_label, _ = batch
+    img, alpha_label, trimap_label, _ = batch
     # img = img
     # alpha_label = alpha_label
 
@@ -48,7 +48,7 @@ def validation_step(self, batch, batch_idx):
     if self.stage == 'train_trimap':
         loss = self.criterion(trimap_out, trimap_label)
     elif self.stage == 'train_alpha':
-        loss = self.criterion(raw_img, alpha_out, alpha_label, trimap_out, trimap_label)
+        loss = self.criterion(img, alpha_out, alpha_label, trimap_out, trimap_label)
 
     self.log('val_loss', loss)
 

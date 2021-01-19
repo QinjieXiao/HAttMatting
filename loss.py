@@ -123,10 +123,14 @@ class LossFunction(object):
 
     def alpha_prediction_loss_with_trimap(self, img, y_pred, y_true):
         eps = 1e-6
-        alpha_loss = torch.sqrt(torch.pow(alpha_pre - alpha_gt, 2.) + eps).mean()
+        alpha_loss = torch.sqrt(torch.pow(y_pred - y_true, 2.) + eps).mean()
         # L_composition
-        fg = torch.cat((alpha_gt, alpha_gt, alpha_gt), 1) * img
-        fg_pre = torch.cat((alpha_pre, alpha_pre, alpha_pre), 1) * img
+        if y_true.ndim == 3:
+            y_true = y_true.unsqueeze(1)
+        if y_pred.ndim == 3:
+            y_pred = y_pred.unsqueeze(1)
+        fg = torch.cat((y_true, y_true, y_true), 1) * img
+        fg_pre = torch.cat((y_pred, y_pred, y_pred), 1) * img
         composition_loss = torch.sqrt(torch.pow(fg - fg_pre, 2.) + eps).mean()
         return 0.5*alpha_loss + 0.5*composition_loss
         # weighted = torch.zeros(trimap.shape, device=device)
