@@ -5,11 +5,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
+from torchvision import transforms
 
 import pytorch_lightning as pl
 
 from .trimap_model import TrimapModel
 from .alpha_model import AlphaModel
+from .T_Net import RD_FPNnet as TNet
+
 
 class Model(pl.LightningModule):
     def __init__(self, stage, lr=0.001, weight_decay=0, momentum=0.9):
@@ -18,23 +21,27 @@ class Model(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
-        self.trimap = TrimapModel()
+        self.trimap = TNet()
         self.alpha = AlphaModel()
-        if self.stage == 'train_trimap':
-            self.freeze_alpha_path()
-    
+        # if self.stage == 'train_trimap':
+        #     self.freeze_alpha_path()
+
     def forward(self, x):
-        trimap = self.trimap(x)
-        trimap_argmax = trimap.argmax(dim=1, keepdim=True)
-        trimap_argmax = F.one_hot(trimap_argmax.permute(0, 2, 3, 1), num_classes=3).squeeze(3).permute(0, 3, 1, 2)
-        alpha, _ = self.alpha(x, trimap_argmax)
+        trimap_input = self.trimap.transform(x)
+        alpha_input = self.alpha.transform(x)
+
+        trimap = self.trimap(trimap_input)
+        alpha = self.alpha(alpha_input, trimap)
+
         return trimap, alpha
-    
+
     def migrate(self, state_dict):
-        for name, p in state_dict.items():
-            if p.data.shape == state_dict[name].shape:
-                p.data = state_dict[name]
-    
+        with torch.no_grad():
+            for name, p in self.state_dict().items():
+                if name in state_dict:
+                    if p.data.shape == state_dict[name].shape:
+                        p.copy_(state_dict[name])
+
     def freeze_alpha_path(self):
         for name, p in self.named_parameters():
             if 'alpha' in name:

@@ -1,6 +1,6 @@
 import logging
 import torch.nn as nn
-from   large_model.ops import SpectralNorm
+from ..ops import SpectralNorm
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -77,10 +77,12 @@ class ResNet_D(nn.Module):
         self.bn2 = norm_layer(self.midplanes)
         self.bn3 = norm_layer(self.inplanes)
         self.activation = nn.ReLU(inplace=True)
-        self.layer1 = self._make_layer(block, 64, layers[0], stride=self.start_stride[3])
+        self.layer1 = self._make_layer(
+            block, 64, layers[0], stride=self.start_stride[3])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer_bottleneck = self._make_layer(block, 512, layers[3], stride=2)
+        self.layer_bottleneck = self._make_layer(
+            block, 512, layers[3], stride=2)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -97,8 +99,9 @@ class ResNet_D(nn.Module):
             if isinstance(m, BasicBlock):
                 nn.init.constant_(m.bn2.weight, 0)
 
-        self.logger.debug("encoder conv1 weight shape: {}".format(str(self.conv1.module.weight_bar.data.shape)))
-        self.conv1.module.weight_bar.data[:,3:,:,:] = 0
+        self.logger.debug("encoder conv1 weight shape: {}".format(
+            str(self.conv1.module.weight_bar.data.shape)))
+        self.conv1.module.weight_bar.data[:, 3:, :, :] = 0
 
         self.logger.debug(self)
 
@@ -115,7 +118,8 @@ class ResNet_D(nn.Module):
             )
         elif self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                SpectralNorm(conv1x1(self.inplanes, planes * block.expansion, stride)),
+                SpectralNorm(conv1x1(self.inplanes, planes *
+                                     block.expansion, stride)),
                 norm_layer(planes * block.expansion),
             )
 
@@ -132,15 +136,15 @@ class ResNet_D(nn.Module):
         x = self.activation(x)
         x = self.conv2(x)
         x = self.bn2(x)
-        x1 = self.activation(x) # N x 32 x 256 x 256
+        x1 = self.activation(x)  # N x 32 x 256 x 256
         x = self.conv3(x1)
         x = self.bn3(x)
-        x2 = self.activation(x) # N x 64 x 128 x 128
+        x2 = self.activation(x)  # N x 64 x 128 x 128
 
-        x3 = self.layer1(x2) # N x 64 x 128 x 128
-        x4 = self.layer2(x3) # N x 128 x 64 x 64
-        x5 = self.layer3(x4) # N x 256 x 32 x 32
-        x = self.layer_bottleneck(x5) # N x 512 x 16 x 16
+        x3 = self.layer1(x2)  # N x 64 x 128 x 128
+        x4 = self.layer2(x3)  # N x 128 x 64 x 64
+        x5 = self.layer3(x4)  # N x 256 x 32 x 32
+        x = self.layer_bottleneck(x5)  # N x 512 x 16 x 16
 
         return x, (x1, x2, x3, x4, x5)
 

@@ -1,4 +1,4 @@
-from   large_model.decoders.resnet_dec import ResNet_D_Dec
+from .resnet_dec import ResNet_D_Dec
 
 
 class ResShortCut_D_Dec(ResNet_D_Dec):
@@ -21,4 +21,3 @@ class ResShortCut_D_Dec(ResNet_D_Dec):
         alpha = (self.tanh(x) + 1.0) / 2.0
 
         return alpha, None
-

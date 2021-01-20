@@ -5,12 +5,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
+from torchvision import transforms
 
 import pytorch_lightning as pl
 
 from .downpath import DownPath
 from .conv_batchnorm_relu import ConvBatchNormRelu
 from .uppath import UpPath
+
+data_transforms = {
+    'train': transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ColorJitter(
+            brightness=0.125, contrast=0.125, saturation=0.125),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ]),
+    'valid': transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ]),
+}
 
 
 class TrimapModel(pl.LightningModule):
@@ -69,13 +85,23 @@ class TrimapModel(pl.LightningModule):
         t2 = torch.add(self.trimap_2(t3, x2, i2, s2), l2)
         t1 = torch.add(self.trimap_1(t2, x1, i1, s1), l1)
         raw_trimap = self.trimap_conv2(self.trimap_conv1(t1))
+        print(raw_trimap.shape)
+        raw_trimap = raw_trimap.argmax(dim=1, keepdim=True)
 
         return raw_trimap
 
+    def transform(self, x):
+        x = data_transforms['valid'](x)
+        return x.unsqueeze(0)
+
     def migrate(self, state_dict):
-        for name, p in state_dict.items():
-            if p.data.shape == state_dict[name].shape:
-                p.data = state_dict[name]
+        with torch.no_grad():
+            for i, (name, p) in enumerate(self.state_dict().items()):
+                # if name in state_dict:
+                # if p.data.shape == state_dict[name].shape:
+                print(i, name)
+                p.copy_(state_dict[name])
+
 
 if __name__ == "__main__":
 
