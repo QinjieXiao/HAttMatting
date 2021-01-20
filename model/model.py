@@ -23,8 +23,9 @@ class Model(pl.LightningModule):
         self.momentum = momentum
         self.trimap = TrimapModel()
         self.alpha = AlphaModel()
-        # if self.stage == 'train_trimap':
-        #     self.freeze_alpha_path()
+        self.example_input_array = torch.zeros(1, 3, 800, 576)
+        if self.stage == 'train_trimap':
+            self.freeze_alpha_path()
 
     def forward(self, x):
         # trimap_input = self.trimap.transform(x)

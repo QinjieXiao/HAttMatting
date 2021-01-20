@@ -9,6 +9,7 @@ import torchvision
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from model import Model
 from torchsummary import summary
@@ -21,6 +22,11 @@ args = parse_args()
 
 if __name__ == "__main__":
     pl.seed_everything(42)
+    logger = TensorBoardLogger(
+        save_dir=os.getcwd(),
+        name='fusion_logs',
+        log_graph=True
+    )
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
         dirpath='',
@@ -31,10 +37,13 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     model = compose(args.stage)
-    trainer = pl.Trainer(precision=16, gpus=1,
-                         benchmark=True, accumulate_grad_batches=4,
+    trainer = pl.Trainer(precision=16,
+                         gpus=1,
+                         benchmark=True,
+                         accumulate_grad_batches=4,
                          progress_bar_refresh_rate=200,
-                         callbacks=[checkpoint_callback, lr_monitor]
+                         callbacks=[checkpoint_callback, lr_monitor],
+                         logger=logger
                          #  resume_from_checkpoint
                          )
     trainer.fit(model)
