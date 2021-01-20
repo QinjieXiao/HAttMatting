@@ -92,7 +92,6 @@ def composite4(fg, bg, a, w, h):
 
 def process(img_path, alpha_path, bcount):
     # img_root_path = args.img_root_path
-    img_root_path = '..\\'
     img_path = os.path.join(img_root_path, img_path)
     alpha_path = os.path.join(img_root_path, alpha_path)
     im = cv.imread(img_path, cv.IMREAD_UNCHANGED)
@@ -100,7 +99,7 @@ def process(img_path, alpha_path, bcount):
     a = cv.imread(alpha_path, cv.IMREAD_UNCHANGED)
     # a = a[:, :, 3]
     h, w = im.shape[:2]
-    if np.random.rand_sample():
+    if np.random.random_sample() > 0.5:
         bg = get_raw("bg", bcount)
         bh, bw = bg.shape[:2]
         wratio = w / bw
@@ -115,9 +114,9 @@ def process(img_path, alpha_path, bcount):
 
 def gen_trimap(trimap_path):
     # img_root_path = args.img_root_path
-    img_root_path = '..\\'
     trimap_path = os.path.join(img_root_path, trimap_path)
     trimap = cv.imread(trimap_path, cv.IMREAD_UNCHANGED)
+    trimap = trimap / 255.0
     return trimap
 
 
@@ -168,7 +167,11 @@ class HADataset(Dataset):
             img = np.fliplr(img).copy()
             trimap = np.fliplr(trimap).copy()
             alpha = np.fliplr(alpha).copy()
-
+        '''
+        img [0..255]
+        alpha [0..1]
+        trimap [0..1]
+        '''
         return img, self.transformer(img), alpha / 255.0, trimap, img_path
 
     def __len__(self):
@@ -200,6 +203,6 @@ def gen_names():
 if __name__ == "__main__":
     dataset = HADataset(split='train')
     dataloader = torch.utils.data.dataloader.DataLoader(
-        dataset, batch_size=1, shuffle=True, num_workers=16)
-    for i, (image, alpha, trimap) in enumerate(tqdm(dataloader)):
+        dataset, batch_size=2, shuffle=True)
+    for i, (_, image, alpha, trimap, _) in enumerate(tqdm(dataloader)):
         print(image.size(), alpha.size(), trimap.size())

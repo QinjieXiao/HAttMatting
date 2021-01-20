@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
 
-from main import Model
+from model import Model
 from data_human import HADataset
 from loss import LossFunction
 

@@ -113,12 +113,11 @@ class LossFunction(object):
             return self.trimap_loss
         elif self.stage == 'train_alpha':
             return self.fusion_loss
-
     def trimap_loss(self, trimap_pred, trimap_true):
         mask = torch.zeros(trimap_true.shape, device=device)
-        # mask[trimap_true == 0] = 0
-        mask[trimap_true == 128] = 1
-        mask[trimap_true == 255] = 2
+        mask[trimap_true == 0] = 0
+        mask[trimap_true == 0.5] = 1
+        mask[trimap_true == 1] = 2
         return self.trimap_criterion(trimap_pred, mask)
 
     def alpha_prediction_loss_with_trimap(self, img, y_pred, y_true):

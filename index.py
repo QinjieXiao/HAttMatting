@@ -10,7 +10,7 @@ import torchvision
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 
-from main import Model
+from model import Model
 from torchsummary import summary
 from compose import compose
 from utils import parse_args
@@ -31,8 +31,6 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     model = compose(args.stage)
-    # checkpoint = torch.load('lightning_logs/cross_entropy_2/checkpoints/checkpoint-epoch=694-val_loss=0.1661.ckpt')
-    # model.load_state_dict(checkpoint['state_dict'])
     trainer = pl.Trainer(precision=16, gpus=1,
                          benchmark=True, accumulate_grad_batches=4,
                          progress_bar_refresh_rate=200,
