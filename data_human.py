@@ -100,17 +100,18 @@ def process(img_path, alpha_path, bcount):
     a = cv.imread(alpha_path, cv.IMREAD_UNCHANGED)
     # a = a[:, :, 3]
     h, w = im.shape[:2]
-    bg = get_raw("bg", bcount)
-    bh, bw = bg.shape[:2]
-    wratio = w / bw
-    hratio = h / bh
-    ratio = wratio if wratio > hratio else hratio
-    if ratio > 1:
-        bg = cv.resize(src=bg, dsize=(math.ceil(bw * ratio),
-                                      math.ceil(bh * ratio)), interpolation=cv.INTER_CUBIC)
+    if np.random.rand_sample():
+        bg = get_raw("bg", bcount)
+        bh, bw = bg.shape[:2]
+        wratio = w / bw
+        hratio = h / bh
+        ratio = wratio if wratio > hratio else hratio
+        if ratio > 1:
+            bg = cv.resize(src=bg, dsize=(math.ceil(bw * ratio),
+                                        math.ceil(bh * ratio)), interpolation=cv.INTER_CUBIC)
 
-    return composite4(im, bg, a, w, h)
-
+        return composite4(im, bg, a, w, h)
+    return im, a, im, None
 
 def gen_trimap(trimap_path):
     # img_root_path = args.img_root_path
@@ -137,9 +138,9 @@ class HADataset(Dataset):
             self.imgs = self.imgs[:split_index]
             self.alpha = self.alpha[:split_index]
             self.trimap = self.trimap[:split_index]
-            # self.imgs = self.imgs.repeat(16)
-            # self.alpha = self.alpha.repeat(16)
-            # self.trimap = self.trimap.repeat(16)
+            self.imgs = self.imgs * 16
+            self.alpha = self.alpha * 16
+            self.trimap = self.trimap * 16
         else:
             self.imgs = self.imgs[split_index:]
             self.alpha = self.alpha[split_index:]
