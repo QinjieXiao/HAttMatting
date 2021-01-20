@@ -30,6 +30,7 @@ class AlphaModel(nn.Module):
         self.decoder = decoders.res_gca_decoder_22()
 
     def forward(self, image, trimap):
+        trimap = trimap.argmax(dim=1, keepdim=True)
         trimap = F.one_hot(trimap.permute(0, 2, 3, 1),
                            num_classes=3).squeeze(3).permute(0, 3, 1, 2)
         inp = torch.cat((image, trimap), dim=1)

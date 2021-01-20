@@ -147,3 +147,5 @@ img.txt
 trimap.txt
 clip_img/
 matting/
+data*/
+*log*/

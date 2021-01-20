@@ -1,6 +1,7 @@
 import math
 import cv2
 from tqdm.auto import tqdm
+import os
 
 import torch
 import torch.nn as nn
@@ -37,13 +38,15 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     model = compose(args.stage)
-    trainer = pl.Trainer(precision=16,
-                         gpus=1,
-                         benchmark=True,
-                         accumulate_grad_batches=4,
-                         progress_bar_refresh_rate=200,
-                         callbacks=[checkpoint_callback, lr_monitor],
-                         logger=logger
-                         #  resume_from_checkpoint
-                         )
+    trainer = pl.Trainer(
+        # precision=16,
+        gpus=0,
+        benchmark=True,
+        accumulate_grad_batches=1,
+        progress_bar_refresh_rate=200,
+        callbacks=[checkpoint_callback, lr_monitor],
+        logger=logger,
+        fast_dev_run=True
+        #  resume_from_checkpoint
+    )
     trainer.fit(model)

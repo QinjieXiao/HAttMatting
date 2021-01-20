@@ -20,7 +20,7 @@ def val_dataloader(self):
 
 
 def training_step(self, batch, batch_idx):
-    img, alpha_label, trimap_label, _ = batch
+    _, img, alpha_label, trimap_label, _ = batch
     # img = img.type(torch.FloatTensor, device=self.device)
     # alpha_label = alpha_label.type(torch.FloatTensor, device=self.device)
 
@@ -38,7 +38,7 @@ def training_step(self, batch, batch_idx):
 
 
 def validation_step(self, batch, batch_idx):
-    img, alpha_label, trimap_label, _ = batch
+    _, img, alpha_label, trimap_label, _ = batch
     # img = img
     # alpha_label = alpha_label
 

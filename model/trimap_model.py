@@ -85,8 +85,7 @@ class TrimapModel(pl.LightningModule):
         t2 = torch.add(self.trimap_2(t3, x2, i2, s2), l2)
         t1 = torch.add(self.trimap_1(t2, x1, i1, s1), l1)
         raw_trimap = self.trimap_conv2(self.trimap_conv1(t1))
-        print(raw_trimap.shape)
-        raw_trimap = raw_trimap.argmax(dim=1, keepdim=True)
+        # print(raw_trimap.shape)
 
         return raw_trimap
 
