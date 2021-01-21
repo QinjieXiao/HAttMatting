@@ -29,7 +29,7 @@ def val(val_loader, model):
     model.eval()
     
     # Batches
-    for i, (img, alpha_label, trimap_label, img_path) in enumerate(val_loader):
+    for i, (_, img, alpha_label, trimap_label, img_path) in enumerate(val_loader):
         # Move to GPU, if available
         img = img.type(torch.FloatTensor).to(device)  # [N, 4, 320, 320]
         alpha_label = alpha_label.type(
@@ -38,7 +38,6 @@ def val(val_loader, model):
         trimap_label = trimap_label.to(device)
         # Forward prop.
         trimap_out, alpha_out = model(img)  # [N, 3, 320, 320]
-        trimap_out.squeeze(0)
         # alpha_out = alpha_out.reshape((-1, 1, im_size * im_size))  # [N, 320*320]
         trimap_out = trimap_out.argmax(dim=1)
         trimap_out = trimap_out.squeeze(0)
@@ -63,11 +62,11 @@ if __name__ == '__main__':
     f = open(args.file, "w")
 
     checkpoint = args.checkpoint
-    if args.device == 'cpu':
+    if device == 'cpu':
         checkpoint = torch.load(checkpoint, map_location=lambda storage, loc: storage)
     else:
         checkpoint = torch.load(checkpoint)
-    model_state_dict = checkpoint['model_state_dict']
+    model_state_dict = checkpoint['state_dict']
     model = Model('train_trimap').to(device)
     model.load_state_dict(model_state_dict)
     val_loader  = DataLoader(HADataset('valid'), batch_size=1, shuffle=False, num_workers=2)

@@ -116,8 +116,7 @@ def gen_trimap(trimap_path):
     # img_root_path = args.img_root_path
     trimap_path = os.path.join(img_root_path, trimap_path)
     trimap = cv.imread(trimap_path, cv.IMREAD_UNCHANGED)
-    trimap = trimap / 255.0
-    return trimap
+    return trimap.astype(np.float32)
 
 
 class HADataset(Dataset):
@@ -172,6 +171,9 @@ class HADataset(Dataset):
         alpha [0..1]
         trimap [0..1]
         '''
+        trimap[trimap == 0] = 0
+        trimap[trimap == 128] = 0.5
+        trimap[trimap == 255] = 1
         return img, self.transformer(img), alpha / 255.0, trimap, img_path
 
     def __len__(self):
