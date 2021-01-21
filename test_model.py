@@ -53,6 +53,13 @@ def remove_prefix_state_dict(state_dict, prefix="module"):
     #         new_state_dict[key[len(prefix)+1:]] = state_dict[key].float()
     return new_state_dict
 
+def has_prefix_state_dict(state_dict, prefix='module'):
+    new_state_dict = {}
+    for key, value in state_dict.items():
+        if key.startswith(prefix):
+            new_state_dict[key] = state_dict[key]
+    return new_state_dict
+
 def load_state_dict(model, state_dict):
     new_state_dict = {}
     for name, p in model.named_parameters():
@@ -79,50 +86,57 @@ def my_torch_load(fname):
         return ckpt 
 
 if __name__ == '__main__':
-    model = E2EModel()
-    checkpoint = torch.load('model_r34_2b_gfm_tt.pth', map_location=lambda storage, loc: storage)
-    # print(checkpoint.keys())
-    model.migrate(checkpoint)
-    # model = Model('train_trimap')
-    # model.eval()
-    # checkpoint = remove_prefix_state_dict(torch.load('ckpt_lastest.pth', map_location=lambda storage, loc: storage)['state_dict'], 't_net')
-    # # checkpoint = torch.load('checkpoint-epoch=694-val_loss=0.1661.ckpt', map_location=lambda storage, loc: storage)['state_dict']
-    # model.trimap.migrate(checkpoint)
-    # checkpoint = remove_prefix_state_dict(torch.load('gca-dist.pth', map_location=lambda storage, loc: storage)['state_dict'], 'module')
-    # model.alpha.migrate(checkpoint)
-    for img_name in tqdm(os.listdir(os.path.join('dataset', 'testing', 'image'))):
-        img_path = os.path.join('dataset', 'testing', 'image', img_name)
+    myModel = Model('train_trimap')
+    without_gpu = True
+    device = 'cpu'
+
+    model = './ckpt_lastest.pth'
+    print('Loading model from {}...'.format(model))
+    if without_gpu:
+        checkpoint = torch.load(model, map_location=lambda storage, loc: storage)
+    else:
+        checkpoint = torch.load(model)
+    myModel.trimap.migrate(remove_prefix_state_dict(checkpoint['state_dict'], 't_net'))
+
+    model = './stage1_skip_sad_52.9.pth'
+    print('Loading model from {}...'.format(model))
+    if without_gpu:
+        checkpoint = my_torch_load(model)
+    else:
+        checkpoint = my_torch_load(model)
+    myModel.alpha.migrate(checkpoint['state_dict'])
+    # if args.without_gpu:
+    #     myModel = torch.load(args.model, map_location=lambda storage, loc: storage)
+    # else:
+    #     myModel = torch.load(args.model)
+
+    myModel.eval()
+    myModel.to(device)
+
+    for img_name in tqdm(os.listdir(os.path.join('..', 'dataset', 'testing', 'image'))):
+        img_path = os.path.join('..', 'dataset', 'testing', 'image', img_name)
         img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img[:,12:-12]
-        img = data_transforms['valid'](img)
-        img = img.unsqueeze(0)
-        img = img / 255.0
-        _, _, alpha = model(img)
+        
+        # img = data_transforms['valid'](img)
+        # img = img.unsqueeze(0)
+        # img = img / 255.0
+        trimap, alpha = myModel(img)
 
-        # trimap = trimap.squeeze(0).squeeze(0).detach()
+        trimap = trimap.argmax(dim=1, keepdim=True)
+        trimap = trimap.squeeze(0).squeeze(0).detach()
         # trimap[trimap == 0] = 0
-        # trimap[trimap == 1] = 128
-        # trimap[trimap == 2] = 255
-        # trimap = trimap.numpy().astype(np.uint8)
+        trimap[trimap == 1] = 128
+        trimap[trimap == 2] = 255
+        trimap = trimap.numpy().astype(np.uint8)
 
         alpha = alpha.squeeze(0).squeeze(0).detach()
-        # alpha[trimap <= 0] = 0
-        # alpha[trimap >= 255] = 1
+        alpha[trimap <= 0] = 0
+        alpha[trimap >= 255] = 1
         alpha = (alpha * 255).numpy().astype(np.uint8)
 
-        cv2.imwrite(os.path.join('dataset', 'testing', 'pred_large', img_name), alpha)
-
-        # trimap = trimap[..., np.newaxis]
-        # alpha = alpha[..., np.newaxis]
-        # cv2.imshow('trimap', np.concatenate([trimap, trimap, trimap], axis=2).astype(np.uint8))
-        # cv2.imshow('alpha', np.concatenate([alpha, alpha, alpha], axis=2).astype(np.uint8))
-        # if cv2.waitKey(0) & 0xFF == ord('q'):
-        #     break
-        # cv2.destroyAllWindows()
-
-        # cv2.imshow()
-        # plt.imshow(alpha, cmap='gray')
-        # plt.show()
-        # plt.imshow(trimap, cmap='gray')
-        # plt.show()
+        cv2.imshow('trimap', trimap)
+        cv2.imshow('alpha', alpha)
+        if cv2.waitKey(0) & 0xFF == ord('q'):
+            break

@@ -11,6 +11,7 @@ import pytorch_lightning as pl
 
 from .trimap_model import TrimapModel
 from .alpha_model import AlphaModel
+from .net import VGG16
 from .T_Net import RD_FPNnet as TNet
 
 
@@ -22,7 +23,7 @@ class Model(pl.LightningModule):
         self.weight_decay = weight_decay
         self.momentum = momentum
         self.trimap = TrimapModel()
-        self.alpha = AlphaModel()
+        self.alpha = VGG16()
         self.example_input_array = torch.zeros(1, 3, 800, 576)
         if self.stage == 'train_trimap':
             self.freeze_alpha_path()
@@ -37,9 +38,10 @@ class Model(pl.LightningModule):
 
     def migrate(self, state_dict):
         with torch.no_grad():
-            for name, p in self.state_dict().items():
+            for i, (name, p) in enumerate(self.state_dict().items()):
                 if name in state_dict:
                     if p.data.shape == state_dict[name].shape:
+                        print(i, name)
                         p.copy_(state_dict[name])
 
     def freeze_alpha_path(self):

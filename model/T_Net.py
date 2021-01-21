@@ -10,21 +10,6 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.ColorJitter(
-            brightness=0.125, contrast=0.125, saturation=0.125),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]),
-    'valid': transforms.Compose([
-        # transforms.ToPILImage(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-
 
 class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio):
@@ -407,7 +392,7 @@ class RD_FPNnet(nn.Module):
         out = self.last_up(p0)
 
         out = out[:, (0, 2, 1)]
-        out = out.argmax(dim=1, keepdim=True)
+
         return out
 
     def transform(self, x):
@@ -418,8 +403,8 @@ class RD_FPNnet(nn.Module):
 
     def migrate(self, state_dict):
         with torch.no_grad():
-            for name, p in self.state_dict().items():
+            for i, (name, p) in enumerate(self.state_dict().items()):
                 if name in state_dict:
                     if p.data.shape == state_dict[name].shape:
-                        print(name)
+                        print(i, name)
                         p.copy_(state_dict[name])

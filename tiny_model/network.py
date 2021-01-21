@@ -9,8 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 
-from model.M_Net import M_net, M_tiny_net
-from model.T_Net import T_mv2_unet, RD_FPNnet
+from .M_Net import M_net, M_tiny_net
+from .T_Net import T_mv2_unet, RD_FPNnet
 
 
 T_net = RD_FPNnet
@@ -24,7 +24,7 @@ class Model(pl.LightningModule):
 
     def __init__(self):
 
-        super(net, self).__init__()
+        super(Model, self).__init__()
 
         self.t_net = T_net()
         self.m_net = M_net()
@@ -49,6 +49,13 @@ class Model(pl.LightningModule):
 
         return trimap, alpha_p
 
+    def migrate(self, state_dict):
+        with torch.no_grad():
+            for i, (name, p) in enumerate(self.state_dict().items()):
+                if name in state_dict:
+                    if p.data.shape == state_dict[name].shape:
+                        print(i, name)
+                        p.copy_(state_dict[name])
 
 
 
