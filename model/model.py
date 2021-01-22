@@ -16,14 +16,14 @@ from .T_Net import RD_FPNnet as TNet
 
 
 class Model(pl.LightningModule):
-    def __init__(self, stage, lr=0.001, weight_decay=0, momentum=0.9):
+    def __init__(self, stage, lr=0.001, weight_decay=0, momentum=0.9, attention=False):
         super(Model, self).__init__()
         self.stage = stage
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
-        self.trimap = TrimapModel()
-        self.alpha = VGG16()
+        self.trimap = TrimapModel(attention=attention)
+        self.alpha = AlphaModel()
         self.example_input_array = torch.zeros(1, 3, 800, 576)
         if self.stage == 'train_trimap':
             self.freeze_alpha_path()

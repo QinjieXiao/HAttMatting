@@ -30,19 +30,19 @@ data_transforms = {
 
 
 class TrimapModel(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, attention=False):
         super(TrimapModel, self).__init__()
 
         self.down1 = DownPath(2, 3, 64, kernel_size=3,
-                              stride=1, padding=1, bias=True)
+                              stride=1, padding=1, bias=True, attention=attention)
         self.down2 = DownPath(2, 64, 128, kernel_size=3,
-                              stride=1, padding=1, bias=True)
+                              stride=1, padding=1, bias=True, attention=attention)
         self.down3 = DownPath(3, 128, 256, kernel_size=3,
-                              stride=1, padding=1, bias=True)
+                              stride=1, padding=1, bias=True, attention=attention)
         self.down4 = DownPath(3, 256, 512, kernel_size=3,
-                              stride=1, padding=1, bias=True)
+                              stride=1, padding=1, bias=True, attention=attention)
         self.down5 = DownPath(3, 512, 512, kernel_size=3,
-                              stride=1, padding=1, bias=True)
+                              stride=1, padding=1, bias=True, attention=attention)
         self.down = ConvBatchNormRelu(
             512, 512, kernel_size=3, padding=1, bias=True)
 

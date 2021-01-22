@@ -70,7 +70,7 @@ def configure_optimizers(self):
     return {'optimizer': optimizer, 'lr_scheduler': scheduler}
 
 
-def compose(stage):
+def compose(stage, attention):
     setattr(Model, 'train_dataloader', train_dataloader)
     setattr(Model, 'val_dataloader', val_dataloader)
     # setattr(Model, 'test_dataloader', test_dataloader)
@@ -79,6 +79,6 @@ def compose(stage):
     setattr(Model, 'training_step', training_step)
     setattr(Model, 'validation_step', validation_step)
 
-    model = Model(stage)
+    model = Model(stage, attention=attention)
     model.build_loss()
     return model
