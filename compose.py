@@ -46,9 +46,9 @@ def validation_step(self, batch, batch_idx):
 
     # Calculate loss
     if self.stage == 'train_trimap':
-        loss = self.criterion(trimap_out, trimap_label)
+        loss = self.val_criterion(trimap_out, trimap_label)
     elif self.stage == 'train_alpha':
-        loss = self.criterion(img, alpha_out, alpha_label, trimap_out, trimap_label)
+        loss = self.val_criterion(img, alpha_out, alpha_label, trimap_out, trimap_label)
 
     self.log('val_loss', loss)
 
@@ -56,8 +56,10 @@ def validation_step(self, batch, batch_idx):
 
 
 def build_loss(self):
-    criterion = LossFunction(self.stage)()
+    criterion = LossFunction(self.stage)('focal')
     setattr(self, 'criterion', criterion)
+    val_criterion = LossFunction(self.stage)('ce')
+    setattr(self, 'val_criterion', val_criterion)
 
 
 def configure_optimizers(self):
