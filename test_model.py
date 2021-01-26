@@ -1,21 +1,23 @@
-from tqdm import tqdm
+import io
+import os
+import pickle
 from time import time
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-
 import torch
-import torchvision
-from torchvision import transforms
-from torchsummary import summary
-# from torchsummaryX import summary
-from torch.utils.data.dataloader import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
-import io
-import pickle
-from model import Model, E2EModel
+import torchvision
+# from torchsummaryX import summary
+from torch.utils.data.dataloader import DataLoader
+from torchsummary import summary
+from torchvision import transforms
+from tqdm import tqdm
+
+from model import E2EModel, Model
+from utils import AverageMeter, draw_str
 
 # from large_model import Model
 
@@ -28,9 +30,9 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ]),
     'valid': transforms.Compose([
-        # transforms.ToPILImage(),
+        transforms.ToPILImage(),
         transforms.ToTensor(),
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
 }
 
@@ -85,39 +87,61 @@ def my_torch_load(fname):
         ckpt = torch.load(fname, pickle_module=c, map_location=lambda storage, loc: storage) 
         return ckpt 
 
+def SAD(trimap_pred, trimap_true):
+    # multiply with 10 to 
+    return np.mean(np.absolute(trimap_pred - trimap_true)) * 10
+
+def MSE(trimap_pred, trimap_true):
+    return np.mean(np.square(trimap_pred - trimap_true))
+    
 if __name__ == '__main__':
-    myModel = Model('train_trimap')
+    myModel = Model('train_trimap', attention=True)
     without_gpu = True
     device = 'cpu'
-
-    model = './ckpt_lastest.pth'
+    
+    model = './checkpoint-epoch=15-val_loss=0.1163.ckpt'
     print('Loading model from {}...'.format(model))
     if without_gpu:
         checkpoint = torch.load(model, map_location=lambda storage, loc: storage)
     else:
         checkpoint = torch.load(model)
-    myModel.trimap.migrate(remove_prefix_state_dict(checkpoint['state_dict'], 't_net'))
+    myModel.load_state_dict(checkpoint['state_dict'])
 
-    model = './stage1_skip_sad_52.9.pth'
+    # model = './ckpt_lastest.pth'
+    # print('Loading model from {}...'.format(model))
+    # if without_gpu:
+    #     checkpoint = torch.load(model, map_location=lambda storage, loc: storage)
+    # else:
+    #     checkpoint = torch.load(model)
+    # myModel.trimap.migrate(remove_prefix_state_dict(checkpoint['state_dict'], 't_net'))
+
+    model = './gca-dist.pth'
     print('Loading model from {}...'.format(model))
     if without_gpu:
-        checkpoint = my_torch_load(model)
+        checkpoint = torch.load(model, map_location=lambda storage, loc: storage)
     else:
-        checkpoint = my_torch_load(model)
-    myModel.alpha.migrate(checkpoint['state_dict'])
-    # if args.without_gpu:
-    #     myModel = torch.load(args.model, map_location=lambda storage, loc: storage)
-    # else:
-    #     myModel = torch.load(args.model)
+        checkpoint = torch.load(model)
+    myModel.alpha.migrate(remove_prefix_state_dict(checkpoint['state_dict'], 'module'))
+
 
     myModel.eval()
     myModel.to(device)
 
-    for img_name in tqdm(os.listdir(os.path.join('..', 'dataset', 'testing', 'image'))):
-        img_path = os.path.join('..', 'dataset', 'testing', 'image', img_name)
+    mse_losses = AverageMeter()
+    sad_losses = AverageMeter()
+
+    for img_name in tqdm(os.listdir(os.path.join('..', 'dataset', 'training', 'image'))):
+        img_path = os.path.join('..', 'dataset', 'training', 'image', img_name)
+        print(img_path)
         img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img[:,12:-12]
+
+        tm_name = img_name[:-4] + '_trimap' + img_name[-4:]
+        tm_path = os.path.join('..', 'dataset', 'training', 'trimap', tm_name)
+        print(tm_path)
+        tm = cv2.imread(tm_path, cv2.IMREAD_UNCHANGED)
+        tm = tm[:, 12:-12]
         
         # img = data_transforms['valid'](img)
         # img = img.unsqueeze(0)
@@ -136,7 +160,23 @@ if __name__ == '__main__':
         alpha[trimap >= 255] = 1
         alpha = (alpha * 255).numpy().astype(np.uint8)
 
-        cv2.imshow('trimap', trimap)
-        cv2.imshow('alpha', alpha)
+        # cv2.imshow('trimap', trimap)
+        # cv2.imshow('alpha', alpha)
+        # cv2.imshow('trimap_gt', tm)
+        mse_loss = MSE(trimap, tm)
+        sad_loss = SAD(trimap, tm)
+        mse_losses.update(mse_loss)
+        sad_losses.update(sad_loss)
+        print("sad:{} mse:{}".format(sad_loss.item(), mse_loss.item()))
+        draw_str(alpha, (10, 20), "sad:{} mse:{}".format(
+            sad_loss.item(), mse_loss.item()))
+        out_path = os.path.join('result', img_name)
+        cv2.imwrite(out_path, alpha)
         if cv2.waitKey(0) & 0xFF == ord('q'):
             break
+
+# if __name__ == "__main__":
+#     model = Model('train_trimap', attention=False)
+#     # print(model.state_dict().keys())
+#     checkpoint = torch.load('checkpoint-epoch=15-val_loss=0.1163.ckpt', map_location=lambda storage, loc: storage)
+#     print(checkpoint['state_dict'].keys())

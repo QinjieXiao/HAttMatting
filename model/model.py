@@ -23,16 +23,21 @@ class Model(pl.LightningModule):
         self.weight_decay = weight_decay
         self.momentum = momentum
         self.trimap = TrimapModel(attention=attention)
+        # self.trimap = TNet()
         self.alpha = AlphaModel()
         self.example_input_array = torch.zeros(1, 3, 800, 576)
         if self.stage == 'train_trimap':
             self.freeze_alpha_path()
 
     def forward(self, x):
-        # trimap_input = self.trimap.transform(x)
-        # alpha_input = self.alpha.transform(x)
-        trimap = self.trimap(x)
-        alpha = self.alpha(x, trimap)
+        if self.training:
+            trimap = self.trimap(x)
+            alpha = self.alpha(x, trimap)
+        else:
+            trimap_input = self.trimap.transform(x)
+            alpha_input = self.alpha.transform(x)
+            trimap = self.trimap(trimap_input)
+            alpha = self.alpha(alpha_input, trimap)
 
         return trimap, alpha
 

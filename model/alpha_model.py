@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torchvision import transforms
+import numpy as np
 
 from . import encoders
 from . import decoders
@@ -15,7 +16,7 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ]),
     'valid': transforms.Compose([
-        # transforms.ToPILImage(),
+        transforms.ToPILImage(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
@@ -30,9 +31,8 @@ class AlphaModel(nn.Module):
         self.decoder = decoders.res_gca_decoder_22()
 
     def forward(self, image, trimap):
-        trimap = trimap.argmax(dim=1, keepdim=True)
-        trimap = F.one_hot(trimap.permute(0, 2, 3, 1),
-                           num_classes=3).squeeze(3).permute(0, 3, 1, 2)
+        trimap = trimap.argmax(dim=1, keepdim=False)
+        trimap = F.one_hot(trimap, num_classes=3).permute(0, 3, 1, 2)
         inp = torch.cat((image, trimap), dim=1)
         embedding, mid_fea = self.encoder(inp)
         alpha, info_dict = self.decoder(embedding, mid_fea)
@@ -45,8 +45,8 @@ class AlphaModel(nn.Module):
 
     def migrate(self, state_dict):
         with torch.no_grad():
-            for name, p in self.state_dict().items():
+            for i, (name, p) in enumerate(self.state_dict().items()):
                 if name in state_dict:
                     if p.data.shape == state_dict[name].shape:
-                        # print(name)
+                        print(name)
                         p.copy_(state_dict[name])
